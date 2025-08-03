@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nonogram</title>
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    h2 { margin-bottom: 10px; }
+    .controls { margin-bottom: 10px; }
+    .nonogram-container { display: grid; gap: 0; }
+
+    /* Play cells with thin gridlines */
+    .cell {
+      width: 30px;
+      height: 30px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      user-select: none;
+      border: 1px solid #ccc;
+      background-color: white;
+      cursor: pointer;
+    }
+    .cell.filled { background-color: #333; color: white; }
+    .cell.cross::after { content: "✕"; color: red; font-size: 16px; }
+
+    /* Clue cells: no gridlines */
+    .clue-cell, .blank-corner {
+      width: 30px;
+      height: 30px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      user-select: none;
+      background: white;
+      white-space: pre-line;
+      text-align: center;
+      border: none;
+    }
+    .blank-corner { background: transparent; }
+
+    /* Thick separators */
+    .thick-border-right { border-right: 3px solid #000; }
+    .thick-border-bottom { border-bottom: 3px solid #000; }
+    .thick-border-left { border-left: 3px solid #000; }
+    .thick-border-top { border-top: 3px solid #000; }
+
+    /* Outer borders */
+    .border-left    { border-left:   3px solid #000; }
+    .border-top     { border-top:    3px solid #000; }
+    .border-right   { border-right:  3px solid #000; }
+    .border-bottom  { border-bottom: 3px solid #000; }
+
+    button { margin: 4px; padding: 8px 16px; }
+    #result { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Nonogram</h2>
+  <div class="controls">
+    <button onclick="initGrid(5)">5×5</button>
+    <button onclick="initGrid(10)">10×10</button>
+    <button onclick="initGrid(15)">15×15</button>
+  </div>
+  <div class="nonogram-container" id="nonogram"></div>
+  <button onclick="checkSolution()">Kontrolli</button>
+  <div id="result"></div>
+
+  <script>
+    // Fixed solution matrices
+    const fixedSolutions = {
+      5: [
+        [1,1,0,1,1],
+        [1,1,0,1,1],
+        [0,0,0,0,0],
+        [1,0,0,0,1],
+        [0,1,1,1,0]
+      ],
+      10: [
+        [0,0,0,0,1,0,0,0,0,0],
+        [0,0,0,1,1,1,0,0,0,0],
+        [0,0,1,0,1,1,0,0,0,0],
+        [0,1,0,0,1,1,1,0,0,0],
+        [0,1,0,0,1,1,1,0,0,0],
+        [0,1,1,0,1,1,1,1,0,0],
+        [0,0,1,1,1,1,1,1,0,0],
+        [0,0,0,0,1,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1,1,1],
+        [0,1,1,1,1,1,1,1,1,0]
+      ],
+      15: [
+        [0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
+        [0,0,0,0,0,0,0,0,1,1,1,1,1,0,0],
+        [0,0,0,0,0,0,0,1,1,1,1,0,1,1,1],
+        [0,0,0,0,0,0,0,1,1,1,1,1,1,1,0],
+        [0,0,0,0,0,0,0,0,1,1,1,1,1,0,0],
+        [0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
+        [0,0,0,0,0,0,0,0,1,1,1,1,1,0,0],
+        [1,0,0,0,0,0,1,1,1,1,1,1,1,1,0],
+        [1,1,1,0,0,1,1,1,0,0,0,1,1,1,0],
+        [1,1,1,1,1,1,1,0,1,1,1,0,1,1,0],
+        [0,1,1,1,1,1,0,1,1,1,1,0,1,1,0],
+        [0,1,1,1,1,1,1,1,1,0,0,1,1,0,0],
+        [0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
+        [0,0,0,0,1,1,0,1,1,1,0,0,0,0,0],
+        [0,0,0,0,0,0,1,1,1,1,1,1,0,0,0]
+      ]
+    };
+
+    let gridSize = 5, cells = [], solution = [];
+    const container = document.getElementById("nonogram");
+
+    function generateSolution(size) {
+      // fallback random
+      return Array.from({ length: size }, () => Array.from({ length: size }, () => Math.random() < 0.4 ? 1 : 0));
+    }
+
+    function getClues(arr, isColumn = false) {
+      const size = arr.length;
+      return Array.from({ length: size }, (_, i) => {
+        const line = [];
+        let count = 0;
+        for (let j = 0; j < size; j++) {
+          const val = isColumn ? arr[j][i] : arr[i][j];
+          if (val === 1) count++;
+          else if (count) { line.push(count); count = 0; }
+        }
+        if (count) line.push(count);
+        return line.length ? line : [0];
+      });
+    }
+
+    function initGrid(size) {
+      gridSize = size;
+      // use fixed solution if available
+      if (fixedSolutions[size]) {
+        // clone to avoid mutation
+        solution = fixedSolutions[size].map(row => row.slice());
+      } else {
+        solution = generateSolution(size);
+      }
+      cells = [];
+      container.innerHTML = "";
+
+      const rowClues = getClues(solution, false);
+      const colClues = getClues(solution, true);
+      const clueSize = Math.max(
+        ...rowClues.map(c => c.length),
+        ...colClues.map(c => c.length)
+      );
+      const total = clueSize + size;
+
+      container.style.gridTemplateColumns = `repeat(${total},30px)`;
+      container.style.gridTemplateRows = `repeat(${total},30px)`;
+
+      for (let r = 0; r < total; r++) {
+        cells[r - clueSize] = [];
+        for (let c = 0; c < total; c++) {
+          const div = document.createElement("div");
+          if (r < clueSize && c < clueSize) {
+            div.className = "blank-corner";
+            if (r === clueSize - 1) div.classList.add("border-bottom");
+            if (c === clueSize - 1) div.classList.add("border-right");
+          } else if (r < clueSize) {
+            const clue = colClues[c - clueSize];
+            const offset = clueSize - clue.length;
+            div.className = "clue-cell";
+            div.textContent = clue[r - offset] || "";
+            if (c - clueSize > 0) div.classList.add("border-left");
+            if (r === clueSize - 1) div.classList.add("border-bottom");
+            if ((c - clueSize + 1) % 5 === 0 && c - clueSize < size - 1) div.classList.add("thick-border-right");
+            if ((c - clueSize) % 5 === 0 && c - clueSize > 0) div.classList.add("thick-border-left");
+          } else if (c < clueSize) {
+            const clue = rowClues[r - clueSize];
+            const offset = clueSize - clue.length;
+            div.className = "clue-cell";
+            div.textContent = clue[c - offset] || "";
+            if (r - clueSize > 0) div.classList.add("border-top");
+            if (c === clueSize - 1) div.classList.add("border-right");
+            if ((r - clueSize + 1) % 5 === 0 && r - clueSize < size - 1) div.classList.add("thick-border-bottom");
+            if ((r - clueSize) % 5 === 0 && r - clueSize > 0) div.classList.add("thick-border-top");
+          } else {
+            div.className = "cell";
+            const row = r - clueSize, col = c - clueSize;
+            if ((col + 1) % 5 === 0 && col !== size - 1) div.classList.add("thick-border-right");
+            if ((row + 1) % 5 === 0 && row !== size - 1) div.classList.add("thick-border-bottom");
+            if (col % 5 === 0 && col > 0) div.classList.add("thick-border-left");
+            if (row % 5 === 0 && row > 0) div.classList.add("thick-border-top");
+            div.dataset.row = row;
+            div.dataset.col = col;
+            div.addEventListener("click", () => { div.classList.toggle("filled"); div.classList.remove("cross"); });
+            div.addEventListener("contextmenu", e => { e.preventDefault(); div.classList.toggle("cross"); div.classList.remove("filled"); });
+            cells[row][col] = div;
+          }
+          if (c === 0 && r >= clueSize) div.classList.add("border-left");
+          if (r === 0 && c >= clueSize) div.classList.add("border-top");
+          if (c === total - 1) div.classList.add("border-right");
+          if (r === total - 1) div.classList.add("border-bottom");
+          container.appendChild(div);
+        }
+      }
+      document.getElementById("result").textContent = "";
+    }
+
+    function checkSolution() {
+      let wrongCount = 0;
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          const expected = solution[r][c];
+          const filled = cells[r][c].classList.contains("filled") ? 1 : 0;
+          if (expected !== filled) wrongCount++;
+        }
+      }
+      const resultText = wrongCount === 0
+        ? "✅ Õige!"
+        : `❌ Sul on ${wrongCount} lahtrit valesti.`;
+      document.getElementById("result").textContent = resultText;
+    }
+
+    initGrid(5);
+  </script>
+</body>
+</html>
