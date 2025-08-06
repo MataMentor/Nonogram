@@ -5,61 +5,116 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nonogram</title>
   <style>
-    body { font-family: sans-serif; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-    h2 { margin-bottom: 10px; }
-    .controls { margin-bottom: 10px; }
-    .nonogram-container { display: grid; gap: 0; }
+  body { font-family: sans-serif; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  h2 { margin-bottom: 10px; }
+  .controls { margin-bottom: 10px; }
+  .nonogram-container { display: grid; gap: 0; }
 
-    /* Play cells with thin gridlines */
+  /* Play cells with thin gridlines */
+  .cell {
+    width: 30px;
+    height: 30px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    user-select: none;
+    border: 1px solid #ccc;
+    background-color: white;
+    cursor: pointer;
+  }
+  .cell.filled { background-color: #333; color: white; }
+  .cell.cross::after { content: "✕"; color: red; font-size: 16px; }
+
+  /* Clue cells: no gridlines */
+  .clue-cell, .blank-corner {
+    width: 30px;
+    height: 30px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    user-select: none;
+    background: white;
+    white-space: pre-line;
+    text-align: center;
+    border: none;
+  }
+  .blank-corner { background: transparent; }
+
+  /* Thick separators */
+  .thick-border-right { border-right: 3px solid #000; }
+  .thick-border-bottom { border-bottom: 3px solid #000; }
+  .thick-border-left { border-left: 3px solid #000; }
+  .thick-border-top { border-top: 3px solid #000; }
+
+  /* Outer borders */
+  .border-left    { border-left:   3px solid #000; }
+  .border-top     { border-top:    3px solid #000; }
+  .border-right   { border-right:  3px solid #000; }
+  .border-bottom  { border-bottom: 3px solid #000; }
+
+  button { margin: 4px; padding: 8px 16px; }
+  #result { margin-top: 20px; font-weight: bold; }
+
+  /* ✅ Responsive adjustments for smaller screens */
+  @media (max-width: 600px) {
+    .cell, .clue-cell, .blank-corner {
+      width: 18px;
+      height: 18px;
+      font-size: 9px;
+    }
+
+    .cell.cross::after {
+      font-size: 12px;
+    }
+
+    .thick-border-right,
+    .thick-border-left,
+    .thick-border-top,
+    .thick-border-bottom,
+    .border-left,
+    .border-right,
+    .border-top,
+    .border-bottom {
+      border-width: 1.5px !important;
+    }
+
     .cell {
-      width: 30px;
-      height: 30px;
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      user-select: none;
-      border: 1px solid #ccc;
-      background-color: white;
-      cursor: pointer;
+      border-width: 0.5px;
     }
-    .cell.filled { background-color: #333; color: white; }
-    .cell.cross::after { content: "✕"; color: red; font-size: 16px; }
+  }
 
-    /* Clue cells: no gridlines */
-    .clue-cell, .blank-corner {
-      width: 30px;
-      height: 30px;
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      user-select: none;
-      background: white;
-      white-space: pre-line;
-      text-align: center;
-      border: none;
+  @media (max-width: 400px) {
+    .cell, .clue-cell, .blank-corner {
+      width: 14px;
+      height: 14px;
+      font-size: 8px;
     }
-    .blank-corner { background: transparent; }
 
-    /* Thick separators */
-    .thick-border-right { border-right: 3px solid #000; }
-    .thick-border-bottom { border-bottom: 3px solid #000; }
-    .thick-border-left { border-left: 3px solid #000; }
-    .thick-border-top { border-top: 3px solid #000; }
+    .cell.cross::after {
+      font-size: 10px;
+    }
 
-    /* Outer borders */
-    .border-left    { border-left:   3px solid #000; }
-    .border-top     { border-top:    3px solid #000; }
-    .border-right   { border-right:  3px solid #000; }
-    .border-bottom  { border-bottom: 3px solid #000; }
+    .thick-border-right,
+    .thick-border-left,
+    .thick-border-top,
+    .thick-border-bottom,
+    .border-left,
+    .border-right,
+    .border-top,
+    .border-bottom {
+      border-width: 1px !important;
+    }
 
-    button { margin: 4px; padding: 8px 16px; }
-    #result { margin-top: 20px; font-weight: bold; }
-    
+    .cell {
+      border-width: 0.4px;
+    }
+  }
   </style>
+
 </head>
 <body>
   <h2>Nonogram</h2>
