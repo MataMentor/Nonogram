@@ -58,6 +58,19 @@
 
     button { margin: 4px; padding: 8px 16px; }
     #result { margin-top: 20px; font-weight: bold; }
+    
+    @media (max-width: 600px) {
+  .cell, .clue-cell, .blank-corner {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .cell.cross::after {
+    font-size: 12px;
+  }
+}
+
   </style>
 </head>
 <body>
